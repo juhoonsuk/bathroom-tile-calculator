@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>타일 박스 발주 계산기</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f4;color:#172c27;font-family:system-ui,'Malgun Gothic',sans-serif}main{max-width:960px;margin:48px auto;padding:0 24px}h1{font-size:30px;margin-bottom:8px}.intro{color:#61716a;margin-bottom:28px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:24px}.card{background:white;border-radius:20px;padding:28px;box-shadow:0 6px 24px #17332908}h2{font-size:19px;margin:0 0 24px}label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}input,select{width:100%;font:inherit;border:1px solid #ccd6d0;border-radius:9px;padding:12px;background:white;color:inherit}.field{margin-bottom:20px}.dimensions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.hint{font-size:13px;color:#697b73;line-height:1.6}.order{background:#e9f4ee;border:1px solid #c6e2d2;border-radius:14px;padding:26px;text-align:center}.order h2{margin-bottom:12px}.box-count{font-size:64px;font-weight:800;line-height:1.2;color:#14613f}.needed{font-size:18px;margin-top:10px}.tile-label{color:#4c6f5c;margin-bottom:10px}.details{margin-top:20px}dl{margin:0}dl div{display:flex;justify-content:space-between;gap:16px;padding:13px 0;border-bottom:1px solid #edf0ee}dt{color:#62736a;font-size:14px}dd{margin:0;font-weight:600;text-align:right}.extra{font-size:14px;background:#f4f7f5;padding:14px;border-radius:9px;line-height:1.6}.error{color:#a13c2c;margin:12px 0}footer{font-size:13px;color:#697b73;margin-top:20px;line-height:1.7}@media(max-width:700px){main{margin:28px auto;padding:0 16px}.layout{grid-template-columns:1fr}.card{padding:22px}.box-count{font-size:60px}}
+</style>
+</head>
+<body><main>
+<h1>타일 박스 발주 계산기</h1>
+<p class="intro">욕실 크기와 타일 규격으로 주문할 박스 수를 확인하세요.</p>
+<div class="layout">
+<section class="card"><h2>시공 조건</h2>
+<form id="calculator">
+<div class="field"><label>욕실 크기 (mm)</label><div class="dimensions">
+<div><label for="width">가로</label><input id="width" type="number" min="1" step="any" value="2400" required></div>
+<div><label for="length">세로</label><input id="length" type="number" min="1" step="any" value="1800" required></div>
+<div><label for="height">높이</label><input id="height" type="number" min="1" step="any" value="2300" required></div>
+</div><p class="hint">바닥과 네 벽을 시공하는 기준입니다. 천장 및 문·창문 면적은 계산에 반영하지 않습니다.</p></div>
+<div class="field"><label for="tile">선택 타일</label><select id="tile"></select></div>
+<div class="field"><label for="loss">로스율 (%)</label><input id="loss" type="number" min="0" step="any" value="10" required></div>
+<p class="hint" id="packing"></p>
+</form><p class="error" id="error" role="alert" hidden></p>
+</section>
+<section class="card" id="result" aria-live="polite" aria-atomic="true">
+<div class="order"><h2>추천 발주 수량</h2><div class="tile-label" id="selectedTile"></div><div class="box-count" id="boxes"></div><div class="needed" id="needed"></div></div>
+<div class="details"><dl>
+<div><dt>실제 출고수량</dt><dd id="shippingPieces"></dd></div>
+<div><dt>실제 출고면적</dt><dd id="shippingArea"></dd></div>
+<div><dt>계산상 필요면적</dt><dd id="requiredArea"></dd></div>
+<div><dt>계산상 필요수량</dt><dd id="requiredPieces"></dd></div>
+<div><dt>총 시공 면적</dt><dd id="constructionArea"></dd></div>
+<div><dt>로스율</dt><dd id="lossValue"></dd></div>
+</dl><p class="extra" id="extra"></p></div>
+</section></div>
+<footer>필요 장수와 박스 수는 각각 소수점 이하를 올림합니다. 면적은 계산 시 원래 값을 사용하며, 화면에는 소수점 둘째 자리까지 표시합니다.</footer>
+</main>
+<script>
+'use strict';
+const TILE_SIZES = [
+  { width: 300, height: 300, piecesPerBox: 16 },
+  { width: 300, height: 600, piecesPerBox: 8 },
+  { width: 600, height: 600, piecesPerBox: 4 },
+  { width: 600, height: 1200, piecesPerBox: 2 }
+];
+function calculateTileArea(tile) { return tile.width * tile.height / 1000000; }
+function calculateRequiredPieces(requiredArea, tileArea) { return Math.ceil(requiredArea / tileArea); }
+function calculateRequiredBoxes(requiredPieces, piecesPerBox) { return Math.ceil(requiredPieces / piecesPerBox); }
+function calculateShippingPieces(requiredBoxes, piecesPerBox) { return requiredBoxes * piecesPerBox; }
+function calculateShippingArea(requiredBoxes, piecesPerBox, tileArea) { return requiredBoxes * piecesPerBox * tileArea; }
+function calculateConstructionArea(width, length, height) { return (width * length + 2 * (width + length) * height) / 1000000; }
+const byId = id => document.getElementById(id);
+const formatNumber = value => value.toLocaleString('ko-KR');
+const formatArea = value => value.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '㎡';
+TILE_SIZES.forEach((tile, index) => {
+  const option = document.createElement('option');
+  option.value = index;
+  option.textContent = `${tile.width} × ${tile.height} mm · ${tile.piecesPerBox}장 / 1박스`;
+  byId('tile').appendChild(option);
+});
+byId('tile').value = '3';
+function render() {
+  const tile = TILE_SIZES[Number(byId('tile').value)];
+  byId('packing').textContent = `선택 규격의 박스당 입수량: ${tile.piecesPerBox}장`;
+  const values = ['width', 'length', 'height', 'loss'].map(id => byId(id).value === '' ? NaN : Number(byId(id).value));
+  const [width, length, height, loss] = values;
+  const valid = values.every(Number.isFinite) && width >= 1 && length >= 1 && height >= 1 && loss >= 0;
+  if (!valid) { byId('result').hidden = true; byId('error').hidden = false; byId('error').textContent = '욕실 크기는 1mm 이상, 로스율은 0% 이상으로 입력하세요.'; return; }
+  const constructionArea = calculateConstructionArea(width, length, height);
+  const requiredArea = constructionArea * (1 + loss / 100);
+  const tileArea = calculateTileArea(tile);
+  const requiredPieces = calculateRequiredPieces(requiredArea, tileArea);
+  const boxes = calculateRequiredBoxes(requiredPieces, tile.piecesPerBox);
+  const shippingPieces = calculateShippingPieces(boxes, tile.piecesPerBox);
+  const shippingArea = calculateShippingArea(boxes, tile.piecesPerBox, tileArea);
+  if (!Number.isSafeInteger(shippingPieces) || !Number.isFinite(shippingArea)) { byId('result').hidden = true; byId('error').hidden = false; byId('error').textContent = '입력값이 너무 큽니다. 욕실 크기와 로스율을 확인하세요.'; return; }
+  byId('result').hidden = false; byId('error').hidden = true;
+  const output = { selectedTile: `${tile.width} × ${tile.height} mm`, boxes: `${formatNumber(boxes)}박스`, needed: `(${formatNumber(requiredPieces)}장 필요)`, shippingPieces: `${formatNumber(shippingPieces)}장`, shippingArea: formatArea(shippingArea), requiredArea: formatArea(requiredArea), requiredPieces: `${formatNumber(requiredPieces)}장`, constructionArea: formatArea(constructionArea), lossValue: `${formatNumber(loss)}%`, extra: shippingPieces > requiredPieces ? `박스 포장으로 인해 ${formatNumber(shippingPieces - requiredPieces)}장이 추가 공급됩니다.` : '박스 출고수량과 계산상 필요수량이 같습니다.' };
+  Object.entries(output).forEach(([id, value]) => { byId(id).textContent = value; });
+}
+byId('calculator').addEventListener('input', render);
+byId('calculator').addEventListener('submit', event => event.preventDefault());
+render();
+</script></body></html>
