@@ -5,6 +5,7 @@
 <title>타일 박스 발주 계산기</title>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f5f4;color:#172c27;font-family:system-ui,'Malgun Gothic',sans-serif}main{max-width:960px;margin:48px auto;padding:0 24px}h1{font-size:30px;margin-bottom:8px}.intro{color:#61716a;margin-bottom:28px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:24px}.conditions{grid-column:1/-1}.tile-inputs{display:grid;grid-template-columns:1fr 1fr;gap:24px}fieldset{border:1px solid #dce5df;border-radius:12px;padding:18px;min-width:0}legend{font-weight:700;padding:0 8px}.overview{padding:16px;background:#f4f7f5;border-radius:9px;font-weight:600}.card{background:white;border-radius:20px;padding:28px;box-shadow:0 6px 24px #17332908}h2{font-size:19px;margin:0 0 24px}label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}input,select{width:100%;font:inherit;border:1px solid #ccd6d0;border-radius:9px;padding:12px;background:white;color:inherit}.field{margin-bottom:20px}.dimensions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.hint{font-size:13px;color:#697b73;line-height:1.6}.order{background:#e9f4ee;border:1px solid #c6e2d2;border-radius:14px;padding:26px;text-align:center}.order h2{margin-bottom:12px}.box-count{font-size:64px;font-weight:800;line-height:1.2;color:#14613f}.needed{font-size:18px;margin-top:10px}.tile-label{color:#4c6f5c;margin-bottom:10px}.details{margin-top:20px}dl{margin:0}dl div{display:flex;justify-content:space-between;gap:16px;padding:13px 0;border-bottom:1px solid #edf0ee}dt{color:#62736a;font-size:14px}dd{margin:0;font-weight:600;text-align:right}.extra{font-size:14px;background:#f4f7f5;padding:14px;border-radius:9px;line-height:1.6}.error{color:#a13c2c;margin:12px 0}footer{font-size:13px;color:#697b73;margin-top:20px;line-height:1.7}@media(max-width:700px){main{margin:28px auto;padding:0 16px}.layout,.tile-inputs{grid-template-columns:1fr}.card{padding:22px}.box-count{font-size:60px}}
+.visualization{margin-top:24px}.visual-intro{color:#61716a;line-height:1.7}.visual-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.visual-panel{background:#f7faf8;border:1px solid #e1e9e4;border-radius:14px;padding:16px;min-width:0}.visual-panel h3{margin:0;font-size:17px}.visual-panel svg{width:100%;display:block}.face-label{font:600 16px system-ui,sans-serif;fill:#244838}.dimension-label{font:13px system-ui,sans-serif;fill:#61716a}.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin:16px 0}.legend span:before{content:'';display:inline-block;width:12px;height:12px;border:1px solid #99afa3;border-radius:3px;margin-right:6px;vertical-align:middle}.legend .wall-key:before{background:#daece3}.legend .floor-key:before{background:#d6e8f5}.legend .cut-key:before{background:#ffdf9b}.layout-counts{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.layout-counts p{margin:0;padding:12px;border-radius:9px;background:#eef4f0;font-size:14px;font-weight:600}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th,td{padding:12px 10px;border-bottom:1px solid #e2e9e5;text-align:right}th:first-child{text-align:left}thead th{background:#f1f5f3;font-weight:600}input[type=range]{padding:0;accent-color:#14613f;margin-top:8px;cursor:pointer}.visual-panel label{margin:12px 0 0}.visual-note{background:#fff7e5;border-radius:9px;padding:14px;font-size:13px;line-height:1.8;color:#77561d}@media(max-width:800px){.visual-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body><main>
@@ -21,10 +22,12 @@
 <div class="tile-inputs">
 <fieldset><legend>벽타일</legend>
 <div class="field"><label for="wallTile">타일 규격</label><select id="wallTile"></select></div>
+<div class="field"><label for="wallOrientation">벽타일 배치 방향</label><select id="wallOrientation"><option value="normal">규격 그대로 배치</option><option value="rotated">90° 회전하여 배치</option></select></div>
 <div class="field"><label for="wallLoss">로스율 (%)</label><input id="wallLoss" type="number" min="0" step="any" value="10" required></div>
 <p class="hint" id="wallPacking"></p></fieldset>
 <fieldset><legend>바닥타일</legend>
 <div class="field"><label for="floorTile">타일 규격</label><select id="floorTile"></select></div>
+<div class="field"><label for="floorOrientation">바닥타일 배치 방향</label><select id="floorOrientation"><option value="normal">규격 그대로 배치</option><option value="rotated">90° 회전하여 배치</option></select></div>
 <div class="field"><label for="floorLoss">로스율 (%)</label><input id="floorLoss" type="number" min="0" step="any" value="10" required></div>
 <p class="hint" id="floorPacking"></p></fieldset>
 </div><p class="overview" id="overview"></p>
@@ -50,8 +53,21 @@
 <div><dt>바닥 시공 면적</dt><dd id="floorConstructionArea"></dd></div>
 <div><dt>로스율</dt><dd id="floorLossValue"></dd></div>
 </dl><p class="extra" id="floorExtra"></p></div></section></div>
+<section class="card visualization" id="visualization">
+<h2>공간별 타일 배치</h2>
+<p class="visual-intro">입력한 욕실 크기와 타일 규격을 비율에 맞춰 보여줍니다. 전개도에서 다섯 면을 확인하고, 3D 보기에서 욕실 내부를 회전해 보세요.</p>
+<div class="legend"><span class="wall-key">벽 온장</span><span class="floor-key">바닥 온장</span><span class="cut-key">절단 조각</span></div>
+<div class="visual-grid">
+<div class="visual-panel"><h3>바닥·네 벽 전개도</h3><div id="planView"></div><p class="hint">각 면의 작은 숫자는 타일 배치 순서입니다. 타일이 많은 면은 숫자를 생략합니다.</p></div>
+<div class="visual-panel"><h3>3D 공간 보기</h3><div id="roomView"></div><label for="viewAngle">공간 회전 (0–360°)</label><input id="viewAngle" type="range" min="0" max="360" step="1" value="35"><p class="hint">내부가 보이도록 가까운 두 벽과 천장을 숨깁니다. 회전하면 다른 벽을 확인할 수 있습니다.</p></div>
+</div>
+<div class="layout-counts"><p id="wallLayoutCount"></p><p id="floorLayoutCount"></p></div>
+<div class="table-scroll"><table><caption class="hint">각 면의 배치 수량 — 온장과 절단 조각을 따로 셉니다.</caption><thead><tr><th scope="col">시공 면</th><th scope="col">크기 (mm)</th><th scope="col">배열</th><th scope="col">온장 (장)</th><th scope="col">절단 (조각)</th><th scope="col">합계 (조각)</th></tr></thead><tbody id="surfaceRows"></tbody></table></div>
+<p class="visual-note">각 면의 왼쪽 아래 모서리부터 맞춰 배치합니다. 바닥은 전개도에서 보이는 왼쪽 위 모서리 기준입니다. 줄눈·문·창문·절단 조각 재사용은 반영하지 않습니다. 절단 조각은 한 장에서 여러 개를 만들 수 있어 배치 조각 수와 구매할 장수가 다를 수 있습니다. 위의 추천 박스 수는 기존 면적 + 로스율 기준이며, 시각화의 배치 수량으로 발주량을 바꾸지 않습니다.</p>
+</section>
 <footer>필요 장수와 박스 수는 각각 소수점 이하를 올림합니다. 면적은 계산 시 원래 값을 사용하며, 화면에는 소수점 둘째 자리까지 표시합니다.</footer>
 </main>
+<script src="./tile-visualization.js"></script>
 <script>
 'use strict';
 const TILE_SIZES = [
@@ -106,6 +122,7 @@ function renderOrder(type, order) {
   Object.entries(output).forEach(([id, value]) => { byId(type + id).textContent = value; });
 }
 function showError(message) {
+  byId('visualization').hidden = true;
   for (const type of ['wall','floor']) byId(type + 'Result').hidden = true;
   byId('overview').hidden = true;
   byId('error').hidden = false;
@@ -133,8 +150,10 @@ function render() {
     byId(type + 'Result').hidden = false;
     renderOrder(type, order);
   }
+  renderVisualization(width,length,height,wall.tile,floor.tile);
 }
 byId('calculator').addEventListener('input', render);
 byId('calculator').addEventListener('submit', event => event.preventDefault());
+byId('viewAngle').addEventListener('input', rotateRoomVisualization);
 render();
 </script></body></html>

@@ -5,4 +5,8 @@ await copyFile(
   new URL('./outputs/tile-calculator.html', import.meta.url),
   new URL('./dist/index.html', import.meta.url)
 );
-console.log('Built dist/index.html');
+await copyFile(
+  new URL('./outputs/tile-visualization.js', import.meta.url),
+  new URL('./dist/tile-visualization.js', import.meta.url)
+);
+console.log('Built dist/index.html and tile-visualization.js');
