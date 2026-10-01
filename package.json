@@ -1,0 +1,9 @@
+{
+  "name": "bathroom-tile-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "deploy": "node build.mjs && npx wrangler deploy"
+  }
+}
